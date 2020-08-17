@@ -44,6 +44,7 @@
     <module>modbus</module>
     <module>s7</module>
     <module>simulated</module>
+    <module>can</module>
   </modules>
 
   <build>
