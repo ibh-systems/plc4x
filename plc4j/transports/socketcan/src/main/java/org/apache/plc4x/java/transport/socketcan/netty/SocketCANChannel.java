@@ -113,12 +113,12 @@ public class SocketCANChannel extends OioByteStreamChannel {
         loopThread = new Thread(() -> {
             try {
                 while (!isInputShutdown()) {
-                    CanFrame frame = handle.read();
-//                    ByteBuf frameBytes = ByteBufAllocator.DEFAULT.buffer();
+                    ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16);
+                    handle.readUnsafe(byteBuffer);
 //                    frameBytes.writeBytes(frame.getBuffer());
 //                    String dump = ByteBufUtil.prettyHexDump(frameBytes);
 //                    System.out.println(frame + "\n" + dump);
-                    buffer.writeBytes(frame.getBuffer());
+                    buffer.writeBytes(byteBuffer);
                 }
             } catch (IOException e) {
                 logger.warn("Could not read data", e);
@@ -246,8 +246,7 @@ public class SocketCANChannel extends OioByteStreamChannel {
             ByteBuffer buffer = ByteBuffer.allocateDirect(len - off);
             buffer.put(b, off, len);
             buffer.flip();
-            CanFrame frame = CanFrame.create(buffer);
-            rawCanChannel.write(frame);
+            rawCanChannel.writeUnsafe(buffer);
         }
     }
 
