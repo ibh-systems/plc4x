@@ -19,8 +19,8 @@ public class SDOUploadConversation extends CANOpenConversationBase {
     private final IndexAddress address;
     private final CANOpenDataType type;
 
-    public SDOUploadConversation(CANConversation<CANOpenFrame> delegate, int nodeId, IndexAddress address, CANOpenDataType type) {
-        super(delegate, nodeId);
+    public SDOUploadConversation(CANConversation<CANOpenFrame> delegate, int nodeId, int answerNodeId, IndexAddress address, CANOpenDataType type) {
+        super(delegate, nodeId, answerNodeId);
         this.address = address;
         this.type = type;
     }

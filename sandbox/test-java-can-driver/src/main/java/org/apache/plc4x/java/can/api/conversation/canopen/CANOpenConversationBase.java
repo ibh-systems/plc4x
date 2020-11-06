@@ -14,10 +14,12 @@ public abstract class CANOpenConversationBase {
 
     protected final CANConversation<CANOpenFrame> delegate;
     protected final int nodeId;
+    private final int answerNodeId;
 
-    public CANOpenConversationBase(CANConversation<CANOpenFrame> delegate, int nodeId) {
+    public CANOpenConversationBase(CANConversation<CANOpenFrame> delegate, int nodeId, int answerNodeId) {
         this.delegate = delegate;
         this.nodeId = nodeId;
+        this.answerNodeId = answerNodeId;
     }
 
     protected PlcValue decodeFrom(byte[] data, CANOpenDataType type, int length) throws ParseException {
@@ -25,7 +27,7 @@ public abstract class CANOpenConversationBase {
     }
 
     protected boolean isTransmitSDOFromReceiver(CANOpenFrame frame) {
-        return frame.getNodeId() == nodeId && frame.getService() == CANOpenService.TRANSMIT_SDO;
+        return frame.getNodeId() == answerNodeId && frame.getService() == CANOpenService.TRANSMIT_SDO;
     }
 
     protected CANOpenFrame createFrame(SDORequest rq) {

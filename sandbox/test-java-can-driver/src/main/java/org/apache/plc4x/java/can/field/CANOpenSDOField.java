@@ -26,16 +26,26 @@ import java.util.regex.Pattern;
 
 public class CANOpenSDOField extends CANOpenField {
 
-    public static final Pattern ADDRESS_PATTERN = Pattern.compile("SDO:" + CANOpenField.NODE_PATTERN + ":" + CANOpenField.ADDRESS_PATTERN);
+    public static final Pattern ADDRESS_PATTERN = Pattern.compile("SDO:" + CANOpenField.NODE_PATTERN + "(?:/(?<answerNodeId>\\d+))?:" + CANOpenField.ADDRESS_PATTERN);
+    private final int answerNode;
     private final short index;
     private final short subIndex;
     private final CANOpenDataType canOpenDataType;
 
     public CANOpenSDOField(int node, short index, short subIndex, CANOpenDataType canOpenDataType) {
+        this(node, node, index, subIndex, canOpenDataType);
+    }
+
+    public CANOpenSDOField(int node, int answerNode, short index, short subIndex, CANOpenDataType canOpenDataType) {
         super(node);
+        this.answerNode = answerNode;
         this.index = index;
         this.subIndex = subIndex;
         this.canOpenDataType = canOpenDataType;
+    }
+
+    public int getAnswerNodeId() {
+        return answerNode;
     }
 
     public short getIndex() {
@@ -72,6 +82,12 @@ public class CANOpenSDOField extends CANOpenField {
 
         String canDataTypeString = matcher.group("canDataType");
         CANOpenDataType canOpenDataType = CANOpenDataType.valueOf(canDataTypeString);
+
+        String answerNode = matcher.group("answerNodeId");
+        if (answerNode != null) {
+            int answerNodeId = Integer.parseInt(matcher.group("answerNodeId"));
+            return new CANOpenSDOField(nodeId, answerNodeId, index, subIndex, canOpenDataType);
+        }
 
         //String numberOfElementsString = matcher.group("numberOfElements");
         //Integer numberOfElements = numberOfElementsString != null ? Integer.valueOf(numberOfElementsString) : null;

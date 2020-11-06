@@ -110,6 +110,103 @@
               <index>1000</index>
               <subIndex>22</subIndex>
               <canOpenDataType>UNSIGNED32</canOpenDataType>
+              <answerNodeId>1</answerNodeId>
+            </sdo1>
+          </request>
+          <sdo1>
+            <code>OK</code>
+            <value className="org.apache.plc4x.java.api.value.PlcUDINT">
+              <object>java.lang.Long</object>
+              <object>1717859169</object>
+            </value>
+          </sdo1>
+        </DefaultPlcReadResponse>
+      </api-response>
+      <delay>1000</delay>
+    </steps>
+  </testcase>
+
+  <testcase>
+    <name>Expedited SDO read request - custom answer node id</name>
+    <description>
+      Single field read request which answers with 4 bytes of data.
+    </description>
+    <steps>
+      <api-request name="Receive Read Request from application">
+        <TestReadRequest className="org.apache.plc4x.test.driver.model.api.TestReadRequest">
+          <fields>
+            <field className="org.apache.plc4x.test.driver.model.api.TestField">
+              <name>sdo1</name>
+              <address>SDO:1/2:1000/22:UNSIGNED32</address>
+            </field>
+          </fields>
+        </TestReadRequest>
+      </api-request>
+      <outgoing-plc-message name="Send SDO Initialize Upload Request">
+        <CANOpenSocketCANFrame className="org.apache.plc4x.java.can.canopen.socketcan.CANOpenSocketCANFrame">
+          <nodeId>1</nodeId>
+          <service>RECEIVE_SDO</service>
+          <payload className="org.apache.plc4x.java.canopen.readwrite.CANOpenSDORequest">
+            <command>INITIATE_UPLOAD</command>
+            <request className="org.apache.plc4x.java.canopen.readwrite.SDOInitiateUploadRequest">
+              <address className="org.apache.plc4x.java.canopen.readwrite.IndexAddress">
+                <index>1000</index>
+                <subindex>22</subindex>
+              </address>
+            </request>
+          </payload>
+        </CANOpenSocketCANFrame>
+      </outgoing-plc-message>
+      <incoming-plc-message name="Receive SDO Initialize Upload Response for other node">
+        <!-- one unwanted frame -->
+        <CANOpenSocketCANFrame className="org.apache.plc4x.java.can.canopen.socketcan.CANOpenSocketCANFrame">
+          <nodeId>1</nodeId>
+          <service>TRANSMIT_SDO</service>
+          <payload className="org.apache.plc4x.java.canopen.readwrite.CANOpenSDOResponse">
+            <command>INITIATE_UPLOAD</command>
+            <response className="org.apache.plc4x.java.canopen.readwrite.SDOInitiateUploadResponse">
+              <expedited>true</expedited>
+              <indicated>true</indicated>
+              <address className="org.apache.plc4x.java.canopen.readwrite.IndexAddress">
+                <index>1001</index>
+                <subindex>22</subindex>
+              </address>
+              <payload className="org.apache.plc4x.java.canopen.readwrite.SDOInitiateExpeditedUploadResponse">
+                <data>YXNkZg==</data>
+              </payload>
+            </response>
+          </payload>
+        </CANOpenSocketCANFrame>
+      </incoming-plc-message>
+      <incoming-plc-message name="Receive SDO Initialize Upload Response for from requested node">
+        <CANOpenSocketCANFrame className="org.apache.plc4x.java.can.canopen.socketcan.CANOpenSocketCANFrame">
+          <nodeId>2</nodeId>
+          <service>TRANSMIT_SDO</service>
+          <payload className="org.apache.plc4x.java.canopen.readwrite.CANOpenSDOResponse">
+            <command>INITIATE_UPLOAD</command>
+            <response className="org.apache.plc4x.java.canopen.readwrite.SDOInitiateUploadResponse">
+              <expedited>true</expedited>
+              <indicated>true</indicated>
+              <address className="org.apache.plc4x.java.canopen.readwrite.IndexAddress">
+                <index>1000</index>
+                <subindex>22</subindex>
+              </address>
+              <payload className="org.apache.plc4x.java.canopen.readwrite.SDOInitiateExpeditedUploadResponse">
+                <data>YXNkZg==</data>
+              </payload>
+            </response>
+          </payload>
+        </CANOpenSocketCANFrame>
+      </incoming-plc-message>
+      <api-response name="Report Read Response to application">
+        <DefaultPlcReadResponse className="org.apache.plc4x.java.spi.messages.DefaultPlcReadResponse">
+          <request className="org.apache.plc4x.java.spi.messages.DefaultPlcReadRequest">
+            <sdo1 className="org.apache.plc4x.java.can.field.CANOpenSDOField">
+              <nodeId>1</nodeId>
+              <index>1000</index>
+              <subIndex>22</subIndex>
+              <canOpenDataType>UNSIGNED32</canOpenDataType>
+              <answerNodeId>2</answerNodeId>
             </sdo1>
           </request>
           <sdo1>
@@ -267,6 +364,7 @@
               <index>2000</index>
               <subIndex>44</subIndex>
               <canOpenDataType>RECORD</canOpenDataType>
+              <answerNodeId>2</answerNodeId>
             </sdo1>
           </request>
           <sdo1>
