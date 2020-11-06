@@ -335,13 +335,13 @@
         ['CANOpenDataType.OCTET_STRING' String
             [manual string 'UTF-8' 'value'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.parseString", io, size, _type.encoding)'
-                'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length'
+                'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length * 8'
             ]
         ]
         ['CANOpenDataType.VISIBLE_STRING' String
             [manual string 'UTF-8' 'value'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.parseString", io, size, _type.encoding)'
-                'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length'
+                'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length * 8'
             ]
         ]
         //CANOpenDataType.TIME_OF_DAY' CANOpenTime

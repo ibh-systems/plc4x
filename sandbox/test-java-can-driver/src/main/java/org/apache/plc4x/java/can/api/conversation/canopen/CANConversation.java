@@ -12,7 +12,7 @@ public interface CANConversation<W extends CANOpenFrame> {
 
     CANOpenFrameBuilder createBuilder();
 
-    void send(W frame, Consumer<SendRequestContext<W>> callback);
+    SendRequestContext<W> send(W frame);
 
 }
 

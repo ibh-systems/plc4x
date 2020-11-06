@@ -31,7 +31,6 @@ import org.apache.plc4x.java.api.value.PlcUSINT;
 import org.apache.plc4x.java.api.value.PlcValue;
 import org.apache.plc4x.java.can.canopen.CANOpenFrame;
 import org.apache.plc4x.java.can.api.conversation.canopen.CANConversation;
-import org.apache.plc4x.java.can.api.conversation.canopen.CANOpenConversation;
 import org.apache.plc4x.java.can.api.conversation.canopen.SDODownloadConversation;
 import org.apache.plc4x.java.can.api.conversation.canopen.SDOUploadConversation;
 import org.apache.plc4x.java.can.canopen.CANOpenFrameBuilderFactory;
@@ -136,7 +135,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
     @Override
     public void setContext(ConversationContext<CANOpenFrame> context) {
         super.setContext(context);
-        this.conversation = new SocketCANConversation(configuration.getNodeId(), context, factory);
+        this.conversation = new SocketCANConversation(configuration.getNodeId(), context, configuration.getRequestTimeout(), factory);
     }
 
     private CANOpenFrame createFrame(CANOpenHeartbeatPayload state) throws ParseException {
@@ -186,8 +185,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
         });
 
         PlcValue writeValue = writeRequest.getPlcValues().get(0);
-        CANOpenConversation canopen = new CANOpenConversation(field.getNodeId(), conversation);
-        SDODownloadConversation download = canopen.sdo().download(new IndexAddress(field.getIndex(), field.getSubIndex()), writeValue, field.getCanOpenDataType());
+        SDODownloadConversation download = new SDODownloadConversation(conversation, field.getNodeId(), new IndexAddress(field.getIndex(), field.getSubIndex()), writeValue, field.getCanOpenDataType());
         transaction.submit(() -> download.execute(callback));
     }
 
@@ -285,8 +283,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
             transaction.endRequest();
         });
 
-        CANOpenConversation canopen = new CANOpenConversation(field.getNodeId(), conversation);
-        SDOUploadConversation upload = canopen.sdo().upload(new IndexAddress(field.getIndex(), field.getSubIndex()), field.getCanOpenDataType());
+        SDOUploadConversation upload = new SDOUploadConversation(conversation, field.getNodeId(), new IndexAddress(field.getIndex(), field.getSubIndex()), field.getCanOpenDataType());
         transaction.submit(() -> upload.execute(callback));
     }
 

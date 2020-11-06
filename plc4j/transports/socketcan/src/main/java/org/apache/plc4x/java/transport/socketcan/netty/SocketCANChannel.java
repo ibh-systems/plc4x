@@ -26,6 +26,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.EventLoop;
 import io.netty.channel.oio.OioByteStreamChannel;
 import org.apache.plc4x.java.transport.socketcan.netty.address.SocketCANAddress;
 import org.slf4j.Logger;
@@ -115,16 +116,19 @@ public class SocketCANChannel extends OioByteStreamChannel {
                 while (!isInputShutdown()) {
                     ByteBuffer byteBuffer = ByteBuffer.allocateDirect(16);
                     handle.readUnsafe(byteBuffer);
+                    buffer.writeBytes(byteBuffer);
+//                    CanFrame frame = handle.read();
+//                    System.out.println("Read frame " + frame);
 //                    frameBytes.writeBytes(frame.getBuffer());
 //                    String dump = ByteBufUtil.prettyHexDump(frameBytes);
 //                    System.out.println(frame + "\n" + dump);
-                    buffer.writeBytes(byteBuffer);
+//                    buffer.writeBytes(frame.getBuffer());
                 }
             } catch (IOException e) {
                 logger.warn("Could not read data", e);
                 pipeline().fireExceptionCaught(e);
             }
-        });
+        }, "javacan-reader");
         loopThread.start();
 
         activate(new CANInputStream(buffer), new CANOutputStream(handle));
@@ -167,6 +171,11 @@ public class SocketCANChannel extends OioByteStreamChannel {
         } catch (SocketTimeoutException ignored) {
             return 0;
         }
+    }
+
+    @Override
+    protected boolean isCompatible(EventLoop loop) {
+        return super.isCompatible(loop);
     }
 
     @Override
@@ -222,9 +231,15 @@ public class SocketCANChannel extends OioByteStreamChannel {
                 if (buf.readableBytes() > 0) {
                     return buf.readByte() & 0xFF;
                 }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
             }
             throw new SocketTimeoutException();
         }
+
     }
 
 
