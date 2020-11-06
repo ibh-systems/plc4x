@@ -13,6 +13,18 @@ class CANOpenSDOFieldTest {
         final CANOpenSDOField canField = CANOpenSDOField.of("SDO:20:0x10/0xAA:RECORD");
 
         assertEquals(20, canField.getNodeId());
+        assertEquals(20, canField.getAnswerNodeId());
+        assertEquals(0x10, canField.getIndex());
+        assertEquals(0xAA, canField.getSubIndex());
+        assertEquals(CANOpenDataType.RECORD, canField.getCanOpenDataType());
+    }
+
+    @Test
+    public void testAnswerNodeSyntax() {
+        final CANOpenSDOField canField = CANOpenSDOField.of("SDO:20/22:0x10/0xAA:RECORD");
+
+        assertEquals(20, canField.getNodeId());
+        assertEquals(22, canField.getAnswerNodeId());
         assertEquals(0x10, canField.getIndex());
         assertEquals(0xAA, canField.getSubIndex());
         assertEquals(CANOpenDataType.RECORD, canField.getCanOpenDataType());

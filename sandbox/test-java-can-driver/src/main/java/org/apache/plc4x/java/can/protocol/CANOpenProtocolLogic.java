@@ -185,7 +185,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
         });
 
         PlcValue writeValue = writeRequest.getPlcValues().get(0);
-        SDODownloadConversation download = new SDODownloadConversation(conversation, field.getNodeId(), new IndexAddress(field.getIndex(), field.getSubIndex()), writeValue, field.getCanOpenDataType());
+        SDODownloadConversation download = new SDODownloadConversation(conversation, field.getNodeId(), field.getAnswerNodeId(), new IndexAddress(field.getIndex(), field.getSubIndex()), writeValue, field.getCanOpenDataType());
         transaction.submit(() -> download.execute(callback));
     }
 
@@ -283,7 +283,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
             transaction.endRequest();
         });
 
-        SDOUploadConversation upload = new SDOUploadConversation(conversation, field.getNodeId(), new IndexAddress(field.getIndex(), field.getSubIndex()), field.getCanOpenDataType());
+        SDOUploadConversation upload = new SDOUploadConversation(conversation, field.getNodeId(), field.getAnswerNodeId(), new IndexAddress(field.getIndex(), field.getSubIndex()), field.getCanOpenDataType());
         transaction.submit(() -> upload.execute(callback));
     }
 

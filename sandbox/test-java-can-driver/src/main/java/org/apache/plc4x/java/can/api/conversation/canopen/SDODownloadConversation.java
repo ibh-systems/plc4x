@@ -20,8 +20,8 @@ public class SDODownloadConversation extends CANOpenConversationBase {
     private final IndexAddress indexAddress;
     private final byte[] data;
 
-    public SDODownloadConversation(CANConversation<CANOpenFrame> delegate, int nodeId, IndexAddress indexAddress, PlcValue value, CANOpenDataType type) {
-        super(delegate, nodeId);
+    public SDODownloadConversation(CANConversation<CANOpenFrame> delegate, int nodeId, int answerNodeId, IndexAddress indexAddress, PlcValue value, CANOpenDataType type) {
+        super(delegate, nodeId, answerNodeId);
         this.delegate = delegate;
         this.indexAddress = indexAddress;
 
