@@ -14,11 +14,13 @@ public class SocketCANConversation implements CANConversation<CANOpenFrame> {
 
     private final int nodeId;
     private final ConversationContext<CANOpenFrame> context;
+    private final int timeout;
     private final CANOpenFrameBuilderFactory factory;
 
-    public SocketCANConversation(int nodeId, ConversationContext<CANOpenFrame> context, CANOpenFrameBuilderFactory factory) {
+    public SocketCANConversation(int nodeId, ConversationContext<CANOpenFrame> context, int timeout, CANOpenFrameBuilderFactory factory) {
         this.nodeId = nodeId;
         this.context = context;
+        this.timeout = timeout;
         this.factory = factory;
     }
 
@@ -32,11 +34,9 @@ public class SocketCANConversation implements CANConversation<CANOpenFrame> {
         return factory.createBuilder();
     }
 
-    @Override
-    public void send(CANOpenFrame frame, Consumer<SendRequestContext<CANOpenFrame>> callback) {
-        SendRequestContext<CANOpenFrame> ctx = context.sendRequest(frame)
-            .expectResponse(CANOpenFrame.class, Duration.ofSeconds(10L));
-        callback.accept(ctx);
+    public SendRequestContext<CANOpenFrame> send(CANOpenFrame frame) {
+        return context.sendRequest(frame)
+            .expectResponse(CANOpenFrame.class, Duration.ofMillis(timeout));
     }
 
 }

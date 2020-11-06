@@ -20,6 +20,7 @@ package org.apache.plc4x.java.can.configuration;
 
 import org.apache.plc4x.java.spi.configuration.Configuration;
 import org.apache.plc4x.java.spi.configuration.annotations.ConfigurationParameter;
+import org.apache.plc4x.java.spi.configuration.annotations.defaults.IntDefaultValue;
 import org.apache.plc4x.java.transport.socketcan.CANTransportConfiguration;
 
 public class CANConfiguration implements Configuration, CANTransportConfiguration {
@@ -29,6 +30,10 @@ public class CANConfiguration implements Configuration, CANTransportConfiguratio
 
     @ConfigurationParameter
     private boolean heartbeat;
+
+    @ConfigurationParameter("request-timeout")
+    @IntDefaultValue(1000)
+    private int requestTimeout;
 
     public int getNodeId() {
         return nodeId;
@@ -44,6 +49,14 @@ public class CANConfiguration implements Configuration, CANTransportConfiguratio
 
     public void setHeartbeat(boolean heartbeat) {
         this.heartbeat = heartbeat;
+    }
+
+    public int getRequestTimeout() {
+        return requestTimeout;
+    }
+
+    public void setRequestTimeout(int requestTimeout) {
+        this.requestTimeout = requestTimeout;
     }
 
 }

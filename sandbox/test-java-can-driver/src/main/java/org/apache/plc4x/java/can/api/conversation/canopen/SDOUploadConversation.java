@@ -3,6 +3,7 @@ package org.apache.plc4x.java.can.api.conversation.canopen;
 import org.apache.plc4x.java.api.exceptions.PlcException;
 import org.apache.plc4x.java.api.value.PlcValue;
 import org.apache.plc4x.java.can.api.segmentation.accumulator.ByteStorage;
+import org.apache.plc4x.java.can.canopen.CANOpenFrame;
 import org.apache.plc4x.java.canopen.readwrite.*;
 import org.apache.plc4x.java.canopen.readwrite.types.CANOpenDataType;
 import org.apache.plc4x.java.spi.generation.ParseException;
@@ -15,12 +16,11 @@ import java.util.function.BiConsumer;
 public class SDOUploadConversation extends CANOpenConversationBase {
 
     private final Logger logger = LoggerFactory.getLogger(SDOUploadConversation.class);
-    private final SDOConversation delegate;
     private final IndexAddress address;
     private final CANOpenDataType type;
 
-    public SDOUploadConversation(SDOConversation delegate, IndexAddress address, CANOpenDataType type) {
-        this.delegate = delegate;
+    public SDOUploadConversation(CANConversation<CANOpenFrame> delegate, int nodeId, IndexAddress address, CANOpenDataType type) {
+        super(delegate, nodeId);
         this.address = address;
         this.type = type;
     }
@@ -28,8 +28,12 @@ public class SDOUploadConversation extends CANOpenConversationBase {
     public void execute(CompletableFuture<PlcValue> receiver) {
         SDOInitiateUploadRequest rq = new SDOInitiateUploadRequest(address);
 
-        delegate.send(rq, (ctx) ->
-            ctx.onError((response, error) -> {
+        delegate.send(createFrame(rq))
+            .check(this::isTransmitSDOFromReceiver)
+            .onTimeout(receiver::completeExceptionally)
+            .unwrap(CANOpenFrame::getPayload)
+            .only(CANOpenSDOResponse.class)
+            .onError((response, error) -> {
                 if (error != null) {
                     receiver.completeExceptionally(error);
                     return;
@@ -45,8 +49,7 @@ public class SDOUploadConversation extends CANOpenConversationBase {
             .check(response -> response.getAddress().equals(address))
             .handle(response -> {
                 handle(receiver, response);
-            })
-        );
+            });
     }
 
     private void handle(CompletableFuture<PlcValue> receiver, SDOInitiateUploadResponse answer) {
@@ -76,36 +79,38 @@ public class SDOUploadConversation extends CANOpenConversationBase {
 
     private void fetch(ByteStorage.SDOUploadStorage storage, BiConsumer<Integer, byte[]> valueCallback, CompletableFuture<PlcValue> receiver, boolean toggle, int size) {
         logger.info("Request next data block for address {}/{}", Integer.toHexString(address.getIndex()), Integer.toHexString(address.getSubindex()));
-        delegate.send(new SDOSegmentUploadRequest(toggle), (ctx) -> {
-            ctx.unwrap(CANOpenSDOResponse::getResponse)
-                .onError((response, error) -> {
-                    if (error != null) {
-                        receiver.completeExceptionally(error);
-                        return;
-                    }
+        delegate.send(createFrame(new SDOSegmentUploadRequest(toggle)))
+            .check(this::isTransmitSDOFromReceiver)
+            .onTimeout(receiver::completeExceptionally)
+            .unwrap(CANOpenFrame::getPayload)
+            .only(CANOpenSDOResponse.class)
+            .unwrap(CANOpenSDOResponse::getResponse)
+            .onError((response, error) -> {
+                if (error != null) {
+                    receiver.completeExceptionally(error);
+                    return;
+                }
 
-                    if (response instanceof SDOAbortResponse) {
-                        SDOAbortResponse abort = (SDOAbortResponse) response;
-                        SDOAbort sdoAbort = abort.getAbort();
-                        receiver.completeExceptionally(new PlcException("Could not read value. Remote party reported code " + sdoAbort.getCode()));
-                    }
-                })
-                .only(SDOSegmentUploadResponse.class)
-                .check(r -> r.getToggle() == toggle)
-                .handle(response -> {
-                    storage.append(response);
+                if (response instanceof SDOAbortResponse) {
+                    SDOAbortResponse abort = (SDOAbortResponse) response;
+                    SDOAbort sdoAbort = abort.getAbort();
+                    receiver.completeExceptionally(new PlcException("Could not read value. Remote party reported code " + sdoAbort.getCode()));
+                }
+            })
+            .only(SDOSegmentUploadResponse.class)
+            .check(r -> r.getToggle() == toggle)
+            .handle(response -> {
+                storage.append(response);
 
-                    if (response.getLast()) {
-                        // validate size
-                        logger.trace("Completed reading of data from {}/{}, collected {}, wanted {}", Integer.toHexString(address.getIndex()), Integer.toHexString(address.getSubindex()), storage.size(), size);
-                        valueCallback.accept(Long.valueOf(size).intValue(), storage.get());
-                    } else {
-                        logger.trace("Continue reading of data from {}/{}, collected {}, wanted {}", Integer.toHexString(address.getIndex()), Integer.toHexString(address.getSubindex()), storage.size(), size);
-                        fetch(storage, valueCallback, receiver, !toggle, size);
-                    }
-                });
-        });
+                if (response.getLast()) {
+                    // validate size
+                    logger.trace("Completed reading of data from {}/{}, collected {}, wanted {}", Integer.toHexString(address.getIndex()), Integer.toHexString(address.getSubindex()), storage.size(), size);
+                    valueCallback.accept(Long.valueOf(size).intValue(), storage.get());
+                } else {
+                    logger.trace("Continue reading of data from {}/{}, collected {}, wanted {}", Integer.toHexString(address.getIndex()), Integer.toHexString(address.getSubindex()), storage.size(), size);
+                    fetch(storage, valueCallback, receiver, !toggle, size);
+                }
+            });
     }
-
 
 }
