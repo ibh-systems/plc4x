@@ -14,5 +14,7 @@ public interface CANConversation<W extends CANOpenFrame> {
 
     SendRequestContext<W> send(W frame);
 
+    void sendToWire(W frame);
+
 }
 

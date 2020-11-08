@@ -39,4 +39,8 @@ public class SocketCANConversation implements CANConversation<CANOpenFrame> {
             .expectResponse(CANOpenFrame.class, Duration.ofMillis(timeout));
     }
 
+    public void sendToWire(CANOpenFrame frame) {
+        context.sendToWire(frame);
+    }
+
 }

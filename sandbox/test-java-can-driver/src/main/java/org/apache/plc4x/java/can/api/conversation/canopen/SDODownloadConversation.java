@@ -1,14 +1,13 @@
 package org.apache.plc4x.java.can.api.conversation.canopen;
 
-import org.apache.plc4x.java.api.exceptions.PlcException;
 import org.apache.plc4x.java.api.exceptions.PlcRuntimeException;
 import org.apache.plc4x.java.api.types.PlcResponseCode;
 import org.apache.plc4x.java.api.value.PlcValue;
+import org.apache.plc4x.java.can.canopen.CANOpenAbortException;
 import org.apache.plc4x.java.can.canopen.CANOpenFrame;
 import org.apache.plc4x.java.canopen.readwrite.*;
 import org.apache.plc4x.java.canopen.readwrite.io.DataItemIO;
 import org.apache.plc4x.java.canopen.readwrite.types.CANOpenDataType;
-import org.apache.plc4x.java.canopen.readwrite.types.CANOpenService;
 import org.apache.plc4x.java.canopen.readwrite.types.SDOResponseCommand;
 import org.apache.plc4x.java.spi.generation.ParseException;
 
@@ -37,17 +36,28 @@ public class SDODownloadConversation extends CANOpenConversationBase {
             // segmented
             SDOInitiateSegmentedUploadResponse size = new SDOInitiateSegmentedUploadResponse(data.length);
             delegate.send(createFrame(new SDOInitiateDownloadRequest(false, true, indexAddress, size)))
-                .check(this::isTransmitSDOFromReceiver)
+                .check(new NodeIdPredicate(answerNodeId))
                 .onTimeout(receiver::completeExceptionally)
                 .onError((response, error) -> receiver.completeExceptionally(error))
                 .unwrap(CANOpenFrame::getPayload)
                 .only(CANOpenSDOResponse.class)
                 .unwrap(CANOpenSDOResponse::getResponse)
-                .check(p -> p.getCommand() == SDOResponseCommand.INITIATE_DOWNLOAD)
-                .only(SDOInitiateDownloadResponse.class)
-                .check(p -> indexAddress.equals(p.getAddress()))
-                .handle(x -> {
-                    put(data, receiver, false, 0);
+                .check(new TypeOrAbortPredicate<>(SDOInitiateDownloadResponse.class))
+                .unwrap(payload -> unwrap(SDOInitiateDownloadResponse.class, payload))
+                .handle(either -> {
+                    if (either.isLeft()) {
+                        receiver.completeExceptionally(new CANOpenAbortException("Could not initiate upload", either.getLeft().getCode()));
+                    } else {
+                        SDOInitiateDownloadResponse response = either.get();
+                        if (response.getAddress().equals(indexAddress)) {
+                            put(data, receiver, false, 0);
+                        } else {
+                            // TODO find proper error code in spec
+                            SDOAbort abort = new SDOAbort(indexAddress, 1000);
+                            delegate.sendToWire(createFrame(new SDOAbortRequest(abort)));
+                            receiver.complete(PlcResponseCode.REMOTE_ERROR);
+                        }
+                    }
                 });
 
             return;
@@ -61,22 +71,25 @@ public class SDODownloadConversation extends CANOpenConversationBase {
         );
 
         delegate.send(createFrame(rq))
-            .check(this::isTransmitSDOFromReceiver)
+            .check(new NodeIdPredicate(answerNodeId))
             .onTimeout(receiver::completeExceptionally)
-            .onError((response, error) -> {
-                if (error != null) {
-                    receiver.completeExceptionally(error);
-                } else {
-                    receiver.completeExceptionally(new PlcException("Transaction terminated"));
-                }
-            })
             .unwrap(CANOpenFrame::getPayload)
             .only(CANOpenSDOResponse.class)
+            .onError((response, error) -> onError(receiver, response, error))
             .unwrap(CANOpenSDOResponse::getResponse)
-            .only(SDOInitiateDownloadResponse.class)
-            .check(r -> r.getCommand() == SDOResponseCommand.INITIATE_DOWNLOAD)
-            .handle(r -> {
-                receiver.complete(PlcResponseCode.OK);
+            .check(new TypeOrAbortPredicate<>(SDOInitiateDownloadResponse.class))
+            .unwrap(payload -> unwrap(SDOInitiateDownloadResponse.class, payload))
+            .handle(either -> {
+                if (either.isLeft()) {
+                    receiver.completeExceptionally(new CANOpenAbortException("Could not initiate upload", either.getLeft().getCode()));
+                } else {
+                    SDOInitiateDownloadResponse response = either.get();
+                    if (response.getCommand() == SDOResponseCommand.INITIATE_DOWNLOAD) {
+                        receiver.complete(PlcResponseCode.OK);
+                    } else {
+                        receiver.complete(PlcResponseCode.REMOTE_ERROR);
+                    }
+                }
             });
     }
 
@@ -86,25 +99,29 @@ public class SDODownloadConversation extends CANOpenConversationBase {
         System.arraycopy(data, offset, segment, 0, segment.length);
 
         delegate.send(createFrame(new SDOSegmentDownloadRequest(toggle, remaining <= 7, segment)))
-            .check(this::isTransmitSDOFromReceiver)
+            .check(new NodeIdPredicate(answerNodeId))
             .onTimeout(receiver::completeExceptionally)
             .unwrap(CANOpenFrame::getPayload)
             .only(CANOpenSDOResponse.class)
+            .onError((response, error) -> onError(receiver, response, error))
             .unwrap(CANOpenSDOResponse::getResponse)
-            .only(SDOSegmentDownloadResponse.class)
-            .onError((response, error) -> {
-                if (error != null) {
-                    receiver.completeExceptionally(error);
+            .check(new TypeOrAbortPredicate<>(SDOSegmentDownloadResponse.class))
+            .unwrap(payload -> unwrap(SDOSegmentDownloadResponse.class, payload))
+            .handle(either -> {
+                if (either.isLeft()) {
+                    return;
                 } else {
-                    receiver.completeExceptionally(new PlcException("Transaction terminated"));
-                }
-            })
-            .check(response -> response.getToggle() == toggle)
-            .handle(reply -> {
-                if (offset + segment.length == data.length) {
-                    receiver.complete(PlcResponseCode.OK);
-                } else {
-                    put(data, receiver, !toggle, offset + segment.length);
+                    SDOSegmentDownloadResponse response = either.get();
+                    if (response.getToggle() != toggle) {
+                        receiver.complete(PlcResponseCode.REMOTE_ERROR);
+                        return;
+                    }
+
+                    if (offset + segment.length == data.length) {
+                        receiver.complete(PlcResponseCode.OK);
+                    } else {
+                        put(data, receiver, !toggle, offset + segment.length);
+                    }
                 }
             });
     }
