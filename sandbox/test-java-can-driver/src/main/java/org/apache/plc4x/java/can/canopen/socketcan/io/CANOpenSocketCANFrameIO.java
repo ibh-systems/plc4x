@@ -145,7 +145,7 @@ public class CANOpenSocketCANFrameIO implements MessageIO<CANOpenFrame, CANOpenF
 
     public static CANOpenService serviceId(int cobId) {
         // form 32 bit socketcan identifier
-        CANOpenService service = CANOpenService.valueOf((byte) (cobId >> 7));
+        CANOpenService service = CANOpenService.enumForValue((byte) (cobId >> 7));
         if (service == null) {
             for (CANOpenService val : CANOpenService.values()) {
                 if (val.getMin() > cobId && val.getMax() < cobId) {

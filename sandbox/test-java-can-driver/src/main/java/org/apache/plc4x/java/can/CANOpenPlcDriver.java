@@ -19,6 +19,9 @@
 package org.apache.plc4x.java.can;
 
 import io.netty.buffer.ByteBuf;
+import org.apache.plc4x.java.api.model.PlcField;
+import org.apache.plc4x.java.api.value.PlcValue;
+import org.apache.plc4x.java.api.value.PlcValueHandler;
 import org.apache.plc4x.java.can.canopen.CANOpenFrame;
 import org.apache.plc4x.java.can.canopen.socketcan.io.CANOpenSocketCANFrameIO;
 import org.apache.plc4x.java.can.configuration.CANConfiguration;
@@ -31,7 +34,10 @@ import org.apache.plc4x.java.spi.connection.ProtocolStackConfigurer;
 import org.apache.plc4x.java.spi.connection.SingleProtocolStackConfigurer;
 import org.apache.plc4x.java.spi.optimizer.BaseOptimizer;
 import org.apache.plc4x.java.spi.optimizer.SingleFieldOptimizer;
+import org.apache.plc4x.java.spi.values.IEC61131ValueHandler;
+import org.apache.plc4x.java.spi.values.PlcList;
 
+import java.lang.reflect.Array;
 import java.util.function.ToIntFunction;
 
 /**
@@ -76,6 +82,19 @@ public class CANOpenPlcDriver extends GeneratedDriverBase<CANOpenFrame> {
     @Override
     protected CANOpenFieldHandler getFieldHandler() {
         return new CANOpenFieldHandler();
+    }
+
+    @Override
+    protected PlcValueHandler getValueHandler() {
+        return new IEC61131ValueHandler() {
+            @Override
+            public PlcValue newPlcValue(PlcField field, Object[] values) {
+                if (values[0] instanceof byte[]) {
+                    return (PlcValue) values[0];
+                }
+                return super.newPlcValue(field, values);
+            }
+        };
     }
 
     @Override

@@ -332,13 +332,13 @@
         ['CANOpenDataType.RECORD' List [int 32 'size']
             [array int 8 'value' length 'size']
         ]
-        ['CANOpenDataType.OCTET_STRING' String
+        ['CANOpenDataType.OCTET_STRING' STRING
             [manual string 'UTF-8' 'value'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.parseString", io, size, _type.encoding)'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length * 8'
             ]
         ]
-        ['CANOpenDataType.VISIBLE_STRING' String
+        ['CANOpenDataType.VISIBLE_STRING' STRING
             [manual string 'UTF-8' 'value'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.parseString", io, size, _type.encoding)'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length * 8'
@@ -346,7 +346,7 @@
         ]
         //CANOpenDataType.TIME_OF_DAY' CANOpenTime
         //CANOpenDataType.TIME_DIFFERENCE' CANOpenTime
-        ['CANOpenDataType.UNICODE_STRING' String
+        ['CANOpenDataType.UNICODE_STRING' STRING
             [manual string 'UTF-8' 'value'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.parseString", io, size, _type.encoding)'
                 'STATIC_CALL("org.apache.plc4x.java.can.helper.CANOpenHelper.serializeString", io, _value, _type.encoding)' '_value.length'

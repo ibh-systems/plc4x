@@ -20,10 +20,9 @@ package org.apache.plc4x.java.can.field;
 
 import org.apache.plc4x.java.api.exceptions.PlcInvalidFieldException;
 import org.apache.plc4x.java.api.model.PlcField;
-import org.apache.plc4x.java.spi.connection.DefaultPlcFieldHandler;
 import org.apache.plc4x.java.spi.connection.PlcFieldHandler;
 
-public class CANFieldHandler extends DefaultPlcFieldHandler implements PlcFieldHandler {
+public class CANFieldHandler implements PlcFieldHandler {
 
     @Override
     public PlcField createField(String fieldQuery) throws PlcInvalidFieldException {

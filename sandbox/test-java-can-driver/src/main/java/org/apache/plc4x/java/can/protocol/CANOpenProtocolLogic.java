@@ -28,14 +28,11 @@ import org.apache.plc4x.java.api.messages.PlcWriteRequest;
 import org.apache.plc4x.java.api.messages.PlcWriteResponse;
 import org.apache.plc4x.java.api.model.PlcConsumerRegistration;
 import org.apache.plc4x.java.api.model.PlcField;
+import org.apache.plc4x.java.api.model.PlcSubscriptionField;
 import org.apache.plc4x.java.api.model.PlcSubscriptionHandle;
 import org.apache.plc4x.java.api.types.PlcResponseCode;
 import org.apache.plc4x.java.api.types.PlcSubscriptionType;
-import org.apache.plc4x.java.api.value.PlcNull;
-import org.apache.plc4x.java.api.value.PlcStruct;
-import org.apache.plc4x.java.api.value.PlcUSINT;
 import org.apache.plc4x.java.api.value.PlcValue;
-import org.apache.plc4x.java.api.value.PlcValues;
 import org.apache.plc4x.java.can.canopen.CANOpenAbortException;
 import org.apache.plc4x.java.can.canopen.CANOpenFrame;
 import org.apache.plc4x.java.can.api.conversation.canopen.CANConversation;
@@ -71,18 +68,20 @@ import org.apache.plc4x.java.spi.generation.ReadBuffer;
 import org.apache.plc4x.java.spi.generation.WriteBuffer;
 import org.apache.plc4x.java.spi.messages.DefaultPlcReadResponse;
 import org.apache.plc4x.java.spi.messages.DefaultPlcSubscriptionEvent;
+import org.apache.plc4x.java.spi.messages.DefaultPlcSubscriptionRequest;
 import org.apache.plc4x.java.spi.messages.DefaultPlcSubscriptionResponse;
+import org.apache.plc4x.java.spi.messages.DefaultPlcWriteRequest;
 import org.apache.plc4x.java.spi.messages.DefaultPlcWriteResponse;
-import org.apache.plc4x.java.spi.messages.InternalPlcReadRequest;
-import org.apache.plc4x.java.spi.messages.InternalPlcSubscriptionRequest;
-import org.apache.plc4x.java.spi.messages.InternalPlcWriteRequest;
 import org.apache.plc4x.java.spi.messages.PlcSubscriber;
 import org.apache.plc4x.java.spi.messages.utils.ResponseItem;
 import org.apache.plc4x.java.spi.model.DefaultPlcConsumerRegistration;
+import org.apache.plc4x.java.spi.model.DefaultPlcSubscriptionField;
 import org.apache.plc4x.java.spi.model.DefaultPlcSubscriptionHandle;
-import org.apache.plc4x.java.spi.model.InternalPlcSubscriptionHandle;
-import org.apache.plc4x.java.spi.model.SubscriptionPlcField;
 import org.apache.plc4x.java.spi.transaction.RequestTransactionManager;
+import org.apache.plc4x.java.spi.values.PlcNull;
+import org.apache.plc4x.java.spi.values.PlcStruct;
+import org.apache.plc4x.java.spi.values.PlcUSINT;
+import org.apache.plc4x.java.spi.values.PlcValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,11 +179,11 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
         }
 
         if (field instanceof CANOpenSDOField) {
-            writeInternally((InternalPlcWriteRequest) writeRequest, (CANOpenSDOField) field, response);
+            writeInternally((DefaultPlcWriteRequest) writeRequest, (CANOpenSDOField) field, response);
             return response;
         }
         if (field instanceof CANOpenPDOField) {
-            writeInternally((InternalPlcWriteRequest) writeRequest, (CANOpenPDOField) field, response);
+            writeInternally((DefaultPlcWriteRequest) writeRequest, (CANOpenPDOField) field, response);
             return response;
         }
 
@@ -192,7 +191,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
         return response;
     }
 
-    private void writeInternally(InternalPlcWriteRequest writeRequest, CANOpenSDOField field, CompletableFuture<PlcWriteResponse> response) {
+    private void writeInternally(DefaultPlcWriteRequest writeRequest, CANOpenSDOField field, CompletableFuture<PlcWriteResponse> response) {
         final RequestTransactionManager.RequestTransaction transaction = tm.startRequest();
 
         String fieldName = writeRequest.getFieldNames().iterator().next();
@@ -218,7 +217,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
         transaction.submit(() -> download.execute(callback));
     }
 
-    private void writeInternally(InternalPlcWriteRequest writeRequest, CANOpenPDOField field, CompletableFuture<PlcWriteResponse> response) {
+    private void writeInternally(DefaultPlcWriteRequest writeRequest, CANOpenPDOField field, CompletableFuture<PlcWriteResponse> response) {
         PlcValue writeValue = writeRequest.getPlcValues().get(0);
 
         try {
@@ -259,42 +258,42 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
             return response;
         };
 
-        readInternally((InternalPlcReadRequest) readRequest, (CANOpenSDOField) field, response);
+        readInternally(readRequest, (CANOpenSDOField) field, response);
         return response;
     }
 
     @Override
     public CompletableFuture<PlcSubscriptionResponse> subscribe(PlcSubscriptionRequest request) {
-        InternalPlcSubscriptionRequest rq = (InternalPlcSubscriptionRequest) request;
+        DefaultPlcSubscriptionRequest rq = (DefaultPlcSubscriptionRequest) request;
 
         Map<String, ResponseItem<PlcSubscriptionHandle>> answers = new LinkedHashMap<>();
         DefaultPlcSubscriptionResponse response = new DefaultPlcSubscriptionResponse(rq, answers);
 
-        for (Map.Entry<String, SubscriptionPlcField> entry : rq.getSubscriptionPlcFieldMap().entrySet()) {
-            SubscriptionPlcField subscription = entry.getValue();
+        for (String key : rq.getFieldNames()) {
+            DefaultPlcSubscriptionField subscription = (DefaultPlcSubscriptionField) rq.getField(key);
             if (subscription.getPlcSubscriptionType() != PlcSubscriptionType.EVENT) {
-                answers.put(entry.getKey(), new ResponseItem<>(PlcResponseCode.UNSUPPORTED, null));
+                answers.put(key, new ResponseItem<>(PlcResponseCode.UNSUPPORTED, null));
             } else if ((subscription.getPlcField() instanceof CANOpenPDOField)) {
-                answers.put(entry.getKey(), new ResponseItem<>(PlcResponseCode.OK,
-                    new CANOpenSubscriptionHandle(this, entry.getKey(), (CANOpenPDOField) subscription.getPlcField())
+                answers.put(key, new ResponseItem<>(PlcResponseCode.OK,
+                    new CANOpenSubscriptionHandle(this, key, (CANOpenPDOField) subscription.getPlcField())
                 ));
             } else if ((subscription.getPlcField() instanceof CANOpenNMTField)) {
-                answers.put(entry.getKey(), new ResponseItem<>(PlcResponseCode.OK,
-                    new CANOpenSubscriptionHandle(this, entry.getKey(), (CANOpenNMTField) subscription.getPlcField())
+                answers.put(key, new ResponseItem<>(PlcResponseCode.OK,
+                    new CANOpenSubscriptionHandle(this, key, (CANOpenNMTField) subscription.getPlcField())
                 ));
             } else if ((subscription.getPlcField() instanceof CANOpenHeartbeatField)) {
-                answers.put(entry.getKey(), new ResponseItem<>(PlcResponseCode.OK,
-                    new CANOpenSubscriptionHandle(this, entry.getKey(), (CANOpenHeartbeatField) subscription.getPlcField())
+                answers.put(key, new ResponseItem<>(PlcResponseCode.OK,
+                    new CANOpenSubscriptionHandle(this, key, (CANOpenHeartbeatField) subscription.getPlcField())
                 ));
             } else {
-                answers.put(entry.getKey(), new ResponseItem<>(PlcResponseCode.INVALID_ADDRESS, null));
+                answers.put(key, new ResponseItem<>(PlcResponseCode.INVALID_ADDRESS, null));
             }
         }
 
         return CompletableFuture.completedFuture(response);
     }
 
-    private void readInternally(InternalPlcReadRequest readRequest, CANOpenSDOField field, CompletableFuture<PlcReadResponse> response) {
+    private void readInternally(PlcReadRequest readRequest, CANOpenSDOField field, CompletableFuture<PlcReadResponse> response) {
         String fieldName = readRequest.getFieldNames().iterator().next();
 
         final RequestTransactionManager.RequestTransaction transaction = tm.startRequest();
@@ -365,7 +364,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
             DefaultPlcConsumerRegistration registration = entry.getKey();
             Consumer<PlcSubscriptionEvent> consumer = entry.getValue();
 
-            for (InternalPlcSubscriptionHandle handler : registration.getAssociatedHandles()) {
+            for (PlcSubscriptionHandle handler : registration.getSubscriptionHandles()) {
                 CANOpenSubscriptionHandle handle = (CANOpenSubscriptionHandle) handler;
                 if (payload instanceof CANOpenPDOPayload) {
 
@@ -446,7 +445,7 @@ public class CANOpenProtocolLogic extends Plc4xProtocolBase<CANOpenFrame> implem
 
     @Override
     public PlcConsumerRegistration register(Consumer<PlcSubscriptionEvent> consumer, Collection<PlcSubscriptionHandle> handles) {
-        final DefaultPlcConsumerRegistration consumerRegistration =new DefaultPlcConsumerRegistration(this, consumer, handles.toArray(new InternalPlcSubscriptionHandle[0]));
+        final DefaultPlcConsumerRegistration consumerRegistration =new DefaultPlcConsumerRegistration(this, consumer, handles.toArray(new DefaultPlcSubscriptionHandle[0]));
         consumers.put(consumerRegistration, consumer);
         return consumerRegistration;
     }

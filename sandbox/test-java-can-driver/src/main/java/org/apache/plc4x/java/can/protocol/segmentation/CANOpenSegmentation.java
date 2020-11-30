@@ -72,7 +72,7 @@ public class CANOpenSegmentation<R> extends Segmentation<SocketCANFrame, CANOpen
 
     private CANOpenService serviceId(int cobId) {
         // form 32 bit socketcan identifier
-        CANOpenService service = CANOpenService.valueOf((byte) (cobId >> 7));
+        CANOpenService service = CANOpenService.enumForValue((byte) (cobId >> 7));
         if (service == null) {
             for (CANOpenService val : CANOpenService.values()) {
                 if (val.getMin() > cobId && val.getMax() < cobId) {

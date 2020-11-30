@@ -14,7 +14,7 @@ import static org.apache.plc4x.java.spi.generation.StaticHelper.COUNT;
 public class CANOpenHelper {
 
     public static CANOpenService readFunction(short identifier) {
-        return CANOpenService.valueOf((byte) (identifier >> 7));
+        return CANOpenService.enumForValue((byte) (identifier >> 7));
     }
 
     public static int uploadPadding(SDOSegmentUploadResponse payload) {

@@ -20,6 +20,7 @@ package org.apache.plc4x.java.can;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import org.apache.plc4x.java.api.value.PlcValueHandler;
 import org.apache.plc4x.java.can.configuration.CANConfiguration;
 import org.apache.plc4x.java.can.context.CANDriverContext;
 import org.apache.plc4x.java.can.field.CANFieldHandler;
@@ -62,6 +63,11 @@ public class CANPlcDriver extends GeneratedDriverBase<SocketCANFrame> {
     @Override
     protected CANFieldHandler getFieldHandler() {
         return new CANFieldHandler();
+    }
+
+    @Override
+    protected PlcValueHandler getValueHandler() {
+        return null;
     }
 
     @Override
